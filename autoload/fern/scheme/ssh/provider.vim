@@ -26,7 +26,7 @@ function! s:provider_get_parent(node, ...) abort
     let path = fern#internal#filepath#to_slash(a:node._path)
     let parent = fern#internal#path#dirname(path)
     let parent = fern#internal#filepath#from_slash(parent)
-    return s:Promise.resolve(s:node(parent))
+    return s:Promise.resolve(s:node(a:node._host, parent, 1))
   catch
     return s:Promise.reject(v:exception)
   endtry
