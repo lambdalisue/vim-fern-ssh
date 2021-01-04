@@ -18,6 +18,14 @@ endfunction
 
 function! s:cmdline(args) abort
   let args = copy(a:args)
-  " let args = map(args, { -> escape(v:val, ' \')})
+  let args = map(args, { _, v -> s:shellescape(v) })
   return join(args, ' ')
+endfunction
+
+function! s:shellescape(expr) abort
+  if stridx(a:expr, ' ') isnot -1
+    return printf("'%s'", escape(a:expr, "\\'"))
+  else
+    return a:expr
+  endif
 endfunction
