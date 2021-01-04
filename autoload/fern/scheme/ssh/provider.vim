@@ -74,22 +74,19 @@ function! s:safe(fn) abort
 endfunction
 
 function! s:list_entries(conn, path, token) abort
-  let prefix = a:path ==# '' ? '' : (a:path . '/')
-  return a:conn.start(['ls', '-1AUF', a:path], {
+  " Use 'find' to follow symlinks and add trailing slash on directories so
+  " that we can distinguish files and directories.
+  " https://unix.stackexchange.com/a/4857
+  return a:conn.start([
+        \   'find', a:path, '-follow', '-maxdepth', '1',
+        \   '-type', 'd', '-exec', 'sh', '-c', 'printf "%s/\n" "$0"', '{}', '\;',
+        \   '-or', '-print',
+        \], {
         \   'token': a:token,
         \   'reject_on_failure': 1,
         \})
         \.catch({ v -> s:Promise.reject(join(v.stderr, "\n")) })
         \.then({ v -> v.stdout })
-        \.then(s:AsyncLambda.filter_f({ v -> !empty(v) }))
-        \.then(s:AsyncLambda.map_f({ v -> prefix . v }))
-        \.then(s:AsyncLambda.map_f({ v -> s:list_entries_item(v) }))
-endfunction
-
-function! s:list_entries_item(path) abort
-  if a:path[-1:] == '/'
-    return [a:path[:-2], 1]
-  else
-    return [a:path, 0]
-  endif
+        \.then(s:AsyncLambda.filter_f({ v -> !empty(v) && v !=# a:path && v !=# '//' }))
+        \.then(s:AsyncLambda.map_f({ v -> v[-1:] ==# '/' ? [v[:-2], 1] : [v, 0] }))
 endfunction
