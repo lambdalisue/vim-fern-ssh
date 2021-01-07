@@ -77,8 +77,9 @@ function! s:list_entries(conn, path, token) abort
   " Use 'find' to follow symlinks and add trailing slash on directories so
   " that we can distinguish files and directories.
   " https://unix.stackexchange.com/a/4857
+  let path = a:path ==# '' ? '.' : a:path
   return a:conn.start([
-        \   'find', a:path, '-follow', '-maxdepth', '1',
+        \   'find', path, '-follow', '-maxdepth', '1',
         \   '-type', 'd', '-exec', 'sh', '-c', 'printf "%s/\n" "$0"', '{}', '\;',
         \   '-or', '-print',
         \], {
@@ -87,6 +88,6 @@ function! s:list_entries(conn, path, token) abort
         \})
         \.catch({ v -> s:Promise.reject(join(v.stderr, "\n")) })
         \.then({ v -> v.stdout })
-        \.then(s:AsyncLambda.filter_f({ v -> !empty(v) && v !=# a:path && v !=# '//' }))
+        \.then(s:AsyncLambda.filter_f({ v -> !empty(v) && v !=# path && v !=# '//' }))
         \.then(s:AsyncLambda.map_f({ v -> v[-1:] ==# '/' ? [v[:-2], 1] : [v, 0] }))
 endfunction
